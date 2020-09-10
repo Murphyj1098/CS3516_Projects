@@ -12,13 +12,18 @@ int main(int argc, char** argv)
     // ./http_client [-options] server_url port_number
     if(!(argc == 3 || argc == 4))
     {
-        printf("Incorrect usage\n");
         usage();
+        exit(1);
     }
+    
+    
 }
 
 // print out program usage to console
 void usage()
 {
-
+    printf("usage: ./HTTPClient [-options] server_url port_number\n");
+    // printf("\n");
+    printf("[-options]:\n");
+    printf("-p: prints the RTT for accessing the URL on the terminal before server's response\n");
 }
