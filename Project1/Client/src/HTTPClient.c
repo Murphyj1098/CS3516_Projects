@@ -1,7 +1,6 @@
 // Joseph Murphy (jrmurphy)
 // CS3516 Project 1 - Socket Programming
 
-#include <arpa/inet.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,11 +14,11 @@
 
 int main(int argc, char** argv)
 {
-    char* rawUrl;
+    char* rawUrl, url, path;
     int socketID;
     char* serverPort;
 
-    char rsp[4096];
+    char rsp[100000];
 
     struct timeval start, end;
     struct addrinfo *serverAddress;
@@ -46,10 +45,11 @@ int main(int argc, char** argv)
     // Copy url and port (position in array based on number of args)
     rawUrl = (argc == 3) ? argv[1] : argv[2];
     serverPort = (argc == 3) ? argv[2] : argv[3];
-    
+
+    url = strtok(rawUrl, "/");
 
     // get address info
-    if(getaddrinfo(rawUrl, serverPort, /*TODO: hints array?*/ 0, &serverAddress) < 0)
+    if(getaddrinfo(url, serverPort, /*TODO: hints array?*/ 0, &serverAddress) < 0)
     {
         printf("Failed to get address info\n");
         exit(1);
@@ -76,28 +76,32 @@ int main(int argc, char** argv)
 
     gettimeofday(&end, NULL);
 
+    char *req = ("GET %s HTTP/1.1\r\nHost: %s\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n", path, url);
+    
     // write GET request to server
-    write(socketID, "GET HTTP1.1\r\n", 100);
-    write(socketID, "Host: www.google.com\r\n", 100);
-    write(socketID, "Content-Type: text/html\r\n", 100);
-    write(socketID, "Connection: close\r\n", 100);
-    write(socketID, "\r\n", 100);
+    send(socketID, req, strlen(req), 0);
 
     // receive response and store
     printf("reading\n");
     read(socketID, rsp, sizeof(rsp));
-
+    printf("read complete\n");
     printf("%s", rsp);
 
 
     // print RTT measure (if -p)
+    if(argc == 4)
+    {
+        float sec  = ((end.tv_sec - start.tv_sec)*1000);
+	float usec = ((end.tv_usec - start.tv_usec)/1000);
+	float RTT  = (sec + usec);
+	printf("RTT: %f ms\n", RTT);
+    } 
 
 
     // close socket
     close(socketID);
     exit(0);
 }
-
 
 
 // print out program usage to console
