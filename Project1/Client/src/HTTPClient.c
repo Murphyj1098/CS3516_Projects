@@ -77,8 +77,8 @@ int main(int argc, char** argv)
     gettimeofday(&end, NULL);
 
     // write GET request to server
-    write(socketID, "GET ~yli15/courses/CS3516Fall20A//index.html HTTP1.1\r\n", 100);
-    write(socketID, "Host: users.wpi.edu\r\n", 100);
+    write(socketID, "GET HTTP1.1\r\n", 100);
+    write(socketID, "Host: www.google.com\r\n", 100);
     write(socketID, "Content-Type: text/html\r\n", 100);
     write(socketID, "Connection: close\r\n", 100);
     write(socketID, "\r\n", 100);
