@@ -19,7 +19,7 @@ int main(int argc, char** argv)
     int socketID;
     char* serverPort;
 
-    char rsp[800];
+    char rsp[4096];
 
     struct timeval start, end;
     struct addrinfo *serverAddress;
