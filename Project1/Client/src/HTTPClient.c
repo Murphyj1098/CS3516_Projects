@@ -23,6 +23,7 @@ int main(int argc, char** argv)
 
     struct timeval start, end;
     struct addrinfo *serverAddress;
+    struct addrinfo hints;
 
     // 3 or 4 possible arguments
     // ./http_client [-options] server_url port_number
@@ -47,8 +48,13 @@ int main(int argc, char** argv)
     // seperate path from domain name
     strtok_r(url, "/", &path);
 
+    // hints struct
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
     // get address info
-    if(getaddrinfo(url, serverPort, /*TODO: hints array?*/ 0, &serverAddress) < 0)
+    if(getaddrinfo(url, serverPort, &hints, &serverAddress) < 0)
     {
         printf("Failed to get address info\n");
         exit(1);
@@ -91,7 +97,6 @@ int main(int argc, char** argv)
 	    printf("\nRTT: %f ms\n", RTT);
     } 
 
-
     // close socket
     close(socketID);
     exit(0);
@@ -101,8 +106,7 @@ int main(int argc, char** argv)
 // print out program usage to console
 void usage()
 {
-    printf("usage: ./HTTPClient [-options] server_url port_number\n");
-    // printf("\n");
+    printf("usage: ./HTTPClient [-options] <server url> <port number>\n");
     printf("[-options]:\n");
     printf("-p: prints the RTT for accessing the URL on the terminal before server's response\n");
 }
