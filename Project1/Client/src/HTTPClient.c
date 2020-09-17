@@ -48,6 +48,7 @@ int main(int argc, char** argv)
     // seperate path from domain name
     strtok_r(url, "/", &path);
 
+
     // hints struct
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
@@ -60,11 +61,13 @@ int main(int argc, char** argv)
         exit(1);
     }
 
+    // create socket
     if((socketID = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
         printf("Failed to open socket\n");
         exit(1);
     }
+
 
     // start RTT measurement
     gettimeofday(&start, NULL);
@@ -73,16 +76,20 @@ int main(int argc, char** argv)
     if (connect(socketID, serverAddress->ai_addr, serverAddress->ai_addrlen) < 0)
     {
         printf("Failed to connect to server\n");
+        close(socketID);
         exit(1);
     }
 
+    // end RTT measurement
     gettimeofday(&end, NULL);
+
 
     char req [4096];
     snprintf(req, sizeof(req), "GET /%s HTTP/1.1\r\nHost: %s\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n", path, url);
     
     // write GET request to server
     send(socketID, req, strlen(req), 0);
+
 
     // receive response and store
     read(socketID, rsp, sizeof(rsp));
@@ -97,9 +104,10 @@ int main(int argc, char** argv)
 	    printf("\nRTT: %f ms\n", RTT);
     } 
 
+
     // close socket
     close(socketID);
-    exit(0);
+    return 0;
 }
 
 
