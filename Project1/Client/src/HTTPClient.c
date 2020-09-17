@@ -25,7 +25,7 @@ int main(int argc, char** argv)
     struct addrinfo *serverAddress;
     struct addrinfo hints;
 
-    FILE *outfile;
+    FILE *infile;
     FILE *serverStream;
 
     // 3 or 4 possible arguments
@@ -93,7 +93,7 @@ int main(int argc, char** argv)
 
     // receive response and store
     serverStream = fdopen(socketID, "r+");
-    outfile = fopen("index.html", "w+");  
+    infile = fopen("index.html", "w+");  
 
     while(fgets(rsp, sizeof(rsp), serverStream) != NULL)
     {
@@ -103,10 +103,10 @@ int main(int argc, char** argv)
         }
         else
         {
-            fputs(rsp, outfile);
+            fputs(rsp, infile);
         }
     }
-    fclose(outfile);
+    fclose(infile);
     fclose(serverStream);
 
     // print RTT measure (if -p)

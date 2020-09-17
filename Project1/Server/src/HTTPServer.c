@@ -18,11 +18,15 @@ int main(int argc, char** argv)
     int socketID, clientID;
     socklen_t addressSize;
 
-    char message[4096];
+    char inMessage[4096];
+    char *OK, *notFound; // HTTP responses
+    char *bufferStr, *outStr;
 
     struct addrinfo hints;
     struct addrinfo *serverAddress;
     struct sockaddr_storage clientAddress;
+
+    FILE *outFile;
 
     if(argc != 2)
     {
@@ -58,8 +62,8 @@ int main(int argc, char** argv)
         exit(1);
     }
 
-    // Convert unconnected socket into passive socket and allow 2 connections to queue
-    if(listen(socketID, 2) != 0)
+    // Convert unconnected socket into passive socket and allow connections to queue
+    if(listen(socketID, 10) != 0)
     {
         printf("Listen call error\n");
         close(socketID);
@@ -77,10 +81,37 @@ int main(int argc, char** argv)
             continue;
         }
 
-        send(clientID, "Hello World!", 13, 0);
-        
-        // recv(clientID, message, sizeof(message), 0);
-        // printf("%s", message);
+        // Take in request
+        recv(clientID, inMessage, sizeof(inMessage), 0);
+
+        // Parse request (is requested file /TMDG.html)
+        if(strstr(inMessage, "/TMDG.html") != NULL)
+        {
+            OK = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: Closed\r\n\r\n";
+            
+            outFile = fopen("TMDG.html", "r");
+            fseek(outFile, 0, SEEK_END);
+            long fsize = ftell(outFile);
+            fseek(outFile, 0, SEEK_SET);
+
+            bufferStr = malloc(fsize + 1);
+            fread(bufferStr, 1, fsize, outFile);
+            fclose(outFile);
+
+            outStr = malloc(sizeof(bufferStr + 1) + sizeof(OK + 1) + 1);
+
+            strcpy(outStr, OK);
+            strcat(outStr, bufferStr);
+
+            send(clientID, outStr, strlen(outStr), 0);
+            close(clientID);
+        }
+        else
+        {
+            notFound = "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\nConnection: Closed\r\n\r\n";
+            send(clientID, notFound, strlen(notFound), 0);
+            close(clientID);
+        }
     }
 
     return 0;
