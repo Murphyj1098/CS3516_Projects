@@ -77,8 +77,10 @@ int main(int argc, char** argv)
             continue;
         }
 
-        recv(clientID, message, sizeof(message), 0);
-        printf("%s", message);
+        send(clientID, "Hello World!", 13, 0);
+        
+        // recv(clientID, message, sizeof(message), 0);
+        // printf("%s", message);
     }
 
     return 0;
