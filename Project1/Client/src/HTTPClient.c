@@ -19,11 +19,14 @@ int main(int argc, char** argv)
     char* serverPort;
     int socketID;
 
-    char rsp[4096];
+    char rsp[8192];
 
     struct timeval start, end;
     struct addrinfo *serverAddress;
     struct addrinfo hints;
+
+    FILE *outfile;
+    FILE *serverStream;
 
     // 3 or 4 possible arguments
     // ./http_client [-options] server_url port_number
@@ -48,7 +51,6 @@ int main(int argc, char** argv)
     // seperate path from domain name
     strtok_r(url, "/", &path);
 
-
     // hints struct
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
@@ -62,12 +64,11 @@ int main(int argc, char** argv)
     }
 
     // create socket
-    if((socketID = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    if((socketID = socket(serverAddress->ai_family, serverAddress->ai_socktype, serverAddress->ai_protocol)) < 0)
     {
         printf("Failed to open socket\n");
         exit(1);
     }
-
 
     // start RTT measurement
     gettimeofday(&start, NULL);
@@ -83,17 +84,30 @@ int main(int argc, char** argv)
     // end RTT measurement
     gettimeofday(&end, NULL);
 
-
+    // Write HTTP request
     char req [4096];
     snprintf(req, sizeof(req), "GET /%s HTTP/1.1\r\nHost: %s\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n", path, url);
     
-    // write GET request to server
+    // send GET request to server
     send(socketID, req, strlen(req), 0);
 
-
     // receive response and store
-    read(socketID, rsp, sizeof(rsp));
-    printf("%s\n", rsp);
+    serverStream = fdopen(socketID, "r+");
+    outfile = fopen("index.html", "w+");  
+
+    while(fgets(rsp, sizeof(rsp), serverStream) != NULL)
+    {
+        if(strstr(rsp, "\r\n"))
+        {
+            printf("%s", rsp);
+        }
+        else
+        {
+            fputs(rsp, outfile);
+        }
+    }
+    fclose(outfile);
+    fclose(serverStream);
 
     // print RTT measure (if -p)
     if(argc == 4)
@@ -102,8 +116,7 @@ int main(int argc, char** argv)
 	    float usec = ((end.tv_usec - start.tv_usec)/1000);
 	    float RTT  = (sec + usec);
 	    printf("\nRTT: %f ms\n", RTT);
-    } 
-
+    }
 
     // close socket
     close(socketID);
