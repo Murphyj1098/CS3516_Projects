@@ -18,15 +18,16 @@ int main(int argc, char** argv)
     int socketID, clientID;
     socklen_t addressSize;
 
+    char c;
     char inMessage[4096];
     char *OK, *notFound; // HTTP responses
-    char *bufferStr, *outStr;
 
     struct addrinfo hints;
     struct addrinfo *serverAddress;
     struct sockaddr_storage clientAddress;
 
     FILE *outFile;
+    FILE *outStream;
 
     if(argc != 2)
     {
@@ -84,26 +85,23 @@ int main(int argc, char** argv)
         // Take in request
         recv(clientID, inMessage, sizeof(inMessage), 0);
 
-        // Parse request (is requested file /TMDG.html)
-        if(strstr(inMessage, "/TMDG.html") != NULL)
+        // Parse request (is requested file /TMDG.html or /index.html)
+        if(strstr(inMessage, "/TMDG.html") != NULL || strstr(inMessage, "/index.html") != NULL)
         {
-            OK = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: Closed\r\n\r\n";
-            
+            // Send HTTP Header and TMDG.html
+            outStream = fdopen(clientID, "r+");
             outFile = fopen("TMDG.html", "r");
-            fseek(outFile, 0, SEEK_END);
-            long fsize = ftell(outFile);
-            fseek(outFile, 0, SEEK_SET);
 
-            bufferStr = malloc(fsize + 1);
-            fread(bufferStr, 1, fsize, outFile);
+            OK = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: Closed\r\n\r\n";
+            fprintf(outStream, "%s", OK);
+
+            while((c = fgetc(outFile)) != EOF)
+            {
+                fputc(c, outStream);
+            }
+
+            fclose(outStream);
             fclose(outFile);
-
-            outStr = malloc(sizeof(bufferStr + 1) + sizeof(OK + 1) + 1);
-
-            strcpy(outStr, OK);
-            strcat(outStr, bufferStr);
-
-            send(clientID, outStr, strlen(outStr), 0);
             close(clientID);
         }
         else

@@ -92,12 +92,12 @@ int main(int argc, char** argv)
     send(socketID, req, strlen(req), 0);
 
     // receive response and store
-    serverStream = fdopen(socketID, "r+");
-    infile = fopen("index.html", "w+");  
+    serverStream = fdopen(socketID, "r");
+    infile = fopen("index.html", "w");
 
     while(fgets(rsp, sizeof(rsp), serverStream) != NULL)
     {
-        if(strstr(rsp, "\r\n"))
+        if(strstr(rsp, "\r\n") != NULL)
         {
             printf("%s", rsp);
         }
