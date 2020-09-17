@@ -53,14 +53,12 @@ int main(int argc, char** argv)
         printf("Failed to get address info\n");
         exit(1);
     }
-    printf("Got address info\n");
 
     if((socketID = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
         printf("Failed to open socket\n");
         exit(1);
     }
-    printf("Opened socket\n");
 
     // start RTT measurement
     gettimeofday(&start, NULL);
@@ -71,7 +69,6 @@ int main(int argc, char** argv)
         printf("Failed to connect to server\n");
         exit(1);
     }
-    printf("Connected to server\n");
 
     gettimeofday(&end, NULL);
 
@@ -82,11 +79,8 @@ int main(int argc, char** argv)
     send(socketID, req, strlen(req), 0);
 
     // receive response and store
-    printf("reading\n");
     read(socketID, rsp, sizeof(rsp));
-    printf("read complete\n");
-    printf("%s", rsp);
-
+    printf("%s\n", rsp);
 
     // print RTT measure (if -p)
     if(argc == 4)
@@ -94,7 +88,7 @@ int main(int argc, char** argv)
         float sec  = ((end.tv_sec - start.tv_sec)*1000);
 	    float usec = ((end.tv_usec - start.tv_usec)/1000);
 	    float RTT  = (sec + usec);
-	    printf("RTT: %f ms\n", RTT);
+	    printf("\nRTT: %f ms\n", RTT);
     } 
 
 
