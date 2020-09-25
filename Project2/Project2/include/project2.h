@@ -54,14 +54,18 @@ struct   pkt {
  * PROTOTYPES - These are in student.c
  * */
 
-void A_output(struct msg message);  // A-Side App call to A-side transport
-void B_output(struct msg message);  // B-Side App call to B-side transport
-void A_input(struct pkt packet);    // From network layer UP to A transport
-void A_timerinterrupt();            // A-side code that is called on interrupt
-void A_init();                      // Simulator calls this at initialization
-void B_input(struct pkt packet);    // From network layer UP to A transport
-void B_timerinterrupt();            // B-side code that is called on interrupt
-void B_init();                      // Simulator calls this at initialization
+// Provided Prototypes
+void A_output(struct msg message);      // A-Side App call to A-side transport
+void A_input(struct pkt packet);        // From network layer UP to A transport
+void A_timerinterrupt();                // A-side code that is called on interrupt
+void A_init();                          // Simulator calls this at initialization
+void B_output(struct msg message);      // B-Side App call to B-side transport
+void B_input(struct pkt packet);        // From network layer UP to A transport
+void B_timerinterrupt();                // B-side code that is called on interrupt
+void B_init();                          // Simulator calls this at initialization
+
+// New Prototypes
+int calcChecksum(struct pkt packet);   // Calculate the checksum of provided packet
 
 /*
  * PROTOTYPES - These are in Project3.c

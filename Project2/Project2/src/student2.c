@@ -17,7 +17,7 @@
    Compile as gcc -g project2.c student2.c -o p2
 **********************************************************************/
 
-
+int prevSeq;
 
 /********* STUDENTS WRITE THE NEXT SEVEN ROUTINES *********/
 /* 
@@ -35,14 +35,20 @@
  * in-order, and correctly, to the receiving side upper layer.
  */
 void A_output(struct msg message) {
-}
 
-/*
- * Just like A_output, but residing on the B side.  USED only when the 
- * implementation is bi-directional.
- */
-void B_output(struct msg message)  {
+    struct pkt packet;  // create packet
 
+    // Packet Setup
+    packet.acknum = 0; // sender doesn't use ACK
+    packet.seqnum = !prevSeq; // opposite previous sequence number
+    for (int i = 0; i < MESSAGE_LENGTH; i++) // copy message into payload
+    {
+        packet.payload[i] = message.data[i];
+    }
+    packet.checksum = calcChecksum(packet); // Calculate checksum for packet
+
+
+    prevSeq = packet.seqnum; // Update previous sequence number
 }
 
 /* 
@@ -68,12 +74,15 @@ void A_timerinterrupt() {
 /* The following routine will be called once (only) before any other    */
 /* entity A routines are called. You can use it to do any initialization */
 void A_init() {
+
 }
 
 
-/* 
- * Note that with simplex transfer from A-to-B, there is no routine  B_output() 
+/*
+ * Just like A_output, but residing on the B side.  USED only when the 
+ * implementation is bi-directional.
  */
+void B_output(struct msg message)  { /*Not implemented for this project*/ }
 
 /*
  * B_input(packet),where packet is a structure of type pkt. This routine 
@@ -82,6 +91,7 @@ void A_init() {
  * packet is the (possibly corrupted) packet sent from the A-side.
  */
 void B_input(struct pkt packet) {
+
 }
 
 /*
@@ -91,6 +101,7 @@ void B_input(struct pkt packet) {
  * and stoptimer() in the writeup for how the timer is started and stopped.
  */
 void  B_timerinterrupt() {
+    
 }
 
 /* 
@@ -98,5 +109,13 @@ void  B_timerinterrupt() {
  * entity B routines are called. You can use it to do any initialization 
  */
 void B_init() {
+
 }
 
+/*
+ *  
+ *   
+ */
+int calcChecksum(struct pkt packet) {
+    
+}
