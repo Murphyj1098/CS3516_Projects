@@ -6,7 +6,7 @@ INC := include
 FLAGS := -I $(INC) -o $(TARGET) -Wall -g
 
 all:
-			$(CC) $(FLAGS) $(SRC)
+		$(CC) $(FLAGS) $(SRC)
 
 clean:
-			rm $(TARGET)
+		rm $(TARGET)

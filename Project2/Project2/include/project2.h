@@ -50,6 +50,8 @@ struct   pkt {
     char payload[MESSAGE_LENGTH];
 };
 
+extern int TraceLevel;
+
 /*
  * PROTOTYPES - These are in student.c
  * */

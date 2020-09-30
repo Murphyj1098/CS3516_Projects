@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "project2.h"
  
 /* ***************************************************************************
@@ -17,7 +18,8 @@
    Compile as gcc -g project2.c student2.c -o p2
 **********************************************************************/
 
-int prevSeq;
+int lastSeq; // store the previous sequence number for comparison
+struct pkt lastPacket; // store copy of most recently sent packet (to resending)
 
 /********* STUDENTS WRITE THE NEXT SEVEN ROUTINES *********/
 /* 
@@ -36,19 +38,42 @@ int prevSeq;
  */
 void A_output(struct msg message) {
 
-    struct pkt packet;  // create packet
+    if(TraceLevel >= 2)
+        printf("\nA_output called\n");
+
+    if(TraceLevel >= 2)
+        printf("Generating packet to send\n");
+
+    struct pkt sendPacket;  // create packet
 
     // Packet Setup
-    packet.acknum = 0; // sender doesn't use ACK
-    packet.seqnum = !prevSeq; // opposite previous sequence number
+    sendPacket.acknum = 0; // sender doesn't use ACK
+    sendPacket.seqnum = !lastSeq; // opposite previous sequence number
     for (int i = 0; i < MESSAGE_LENGTH; i++) // copy message into payload
     {
-        packet.payload[i] = message.data[i];
+        sendPacket.payload[i] = message.data[i];
     }
-    packet.checksum = calcChecksum(packet); // Calculate checksum for packet
+    sendPacket.checksum = calcChecksum(sendPacket); // Create checksum
 
+    if(TraceLevel >= 2)
+        printf("Packet populated, sending packet\n");
 
-    prevSeq = packet.seqnum; // Update previous sequence number
+    tolayer3(AEntity, sendPacket); // send packet
+    startTimer(AEntity, 1000); // send timer to wait for ack
+
+    lastSeq = sendPacket.seqnum; // Update previous sequence number
+
+    if(TraceLevel >= 2)
+        printf("Packet sent, copying packet for possible resend\n");
+
+    // Copy sent packet in event of needing to resend
+    lastPacket.acknum   = sendPacket.acknum;
+    lastPacket.seqnum   = sendPacket.seqnum;
+    lastPacket.checksum = sendPacket.checksum;
+    strcpy(lastPacket.payload, sendPacket.payload);
+
+    if(TraceLevel >= 2)
+        printf("Packet copied, end of A_output\n");
 }
 
 /* 
@@ -59,6 +84,36 @@ void A_output(struct msg message) {
  */
 void A_input(struct pkt packet) {
 
+    if(TraceLevel >= 2)
+        printf("\nA_input called\n");
+
+    stopTimer(AEntity);
+
+    // check for packet corruption
+    if(calcChecksum(lastPacket) != packet.checksum)
+    {
+        if(TraceLevel >= 2)
+            printf("Packet is corrupt, resending\n");
+
+        tolayer3(AEntity, lastPacket);
+        startTimer(AEntity, 1000);
+    }
+
+    // if packet not corrupt -> check ACK
+    else if(packet.acknum != lastPacket.seqnum)
+    {
+        if(TraceLevel >= 2)
+            printf("Returned NAK, resending\n");
+
+        tolayer3(AEntity, lastPacket);
+        startTimer(AEntity, 1000);
+    }
+
+    // packet was received successfully
+    else
+    {
+
+    }
 }
 
 /*
@@ -69,12 +124,19 @@ void A_input(struct pkt packet) {
  */
 void A_timerinterrupt() {
 
+        // if timer expires, resend packet
+        if(TraceLevel >= 2)
+            printf("No response from B, resending packet");
+
+        tolayer3(AEntity, lastPacket);
+        startTimer(AEntity, 1000);
 }  
 
 /* The following routine will be called once (only) before any other    */
 /* entity A routines are called. You can use it to do any initialization */
 void A_init() {
 
+    lastSeq = 1; // initial sequence number will be zero
 }
 
 
@@ -113,9 +175,9 @@ void B_init() {
 }
 
 /*
- *  
+ * 
  *   
  */
 int calcChecksum(struct pkt packet) {
-    
+    return 0;
 }
