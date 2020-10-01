@@ -124,3 +124,11 @@ void tolayer5( int AorB, struct msg datasent);
  * Returns the current state of the timer - TRUE if running, FALSE if not
  */
 int getTimerStatus( int AorB );
+
+/*
+ * Terminal Message Color Macros (make debug stream easier to read)
+ */
+#define RESET   "\033[0m"       /* Reset to default*/
+#define RED     "\033[31m"      /* Red */
+#define GREEN   "\033[32m"      /* Green */
+#define YELLOW  "\033[33m"      /* Yellow */

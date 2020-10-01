@@ -20,6 +20,10 @@
 int lastSeq; // store the previous sequence number for comparison
 struct pkt lastPacket; // store copy of most recently sent packet (to resending)
 
+struct msg messageQueue[50];
+int pos;
+int busy;
+
 /********* STUDENTS WRITE THE NEXT SEVEN ROUTINES *********/
 /* 
  * The routines you will write are detailed below. As noted above, 
@@ -38,7 +42,7 @@ struct pkt lastPacket; // store copy of most recently sent packet (to resending)
 void A_output(struct msg message) {
 
     if(TraceLevel >= 2)
-        printf("\nA_output called\n");
+        printf(GREEN "\nA_output called\n" RESET);
 
     if(TraceLevel >= 2)
         printf("Generating packet to send\n");
@@ -72,7 +76,10 @@ void A_output(struct msg message) {
         lastPacket.payload[i] = sendPacket.payload[i];
 
     if(TraceLevel >= 2)
-        printf("Packet copied, end of A_output\n");
+    {
+        printf("Packet copied\n");
+        printf(GREEN "End of A_output\n" RESET);
+    }
 }
 
 /* 
@@ -84,15 +91,18 @@ void A_output(struct msg message) {
 void A_input(struct pkt packet) {
 
     if(TraceLevel >= 2)
-        printf("\nA_input called\n");
+        printf(GREEN "\nA_input called\n" RESET);
 
     stopTimer(AEntity);
 
     // check for packet corruption
-    if(calcChecksum(lastPacket) != packet.checksum)
+    if(calcChecksum(packet) != packet.checksum)
     {
         if(TraceLevel >= 2)
+        {
             printf("Packet is corrupt, resending\n");
+            printf("Packet checksum: %d, Expected checksum: %d\n", packet.checksum, calcChecksum(lastPacket));
+        }
 
         tolayer3(AEntity, lastPacket);
         startTimer(AEntity, 1000);
@@ -112,7 +122,13 @@ void A_input(struct pkt packet) {
     else
     {
         // send next packet (if queued)
+        if(TraceLevel >= 2)
+            printf("ACK received at A-input successfully\n");
     }
+
+    if(TraceLevel >= 2)
+        printf(GREEN "End of A_input\n" RESET);
+
 }
 
 /*
@@ -142,7 +158,9 @@ void A_init() {
     lastPacket.acknum = 0; 
     lastPacket.checksum = 0;
     for (int i = 0; i < MESSAGE_LENGTH; i++)
+    {
         lastPacket.payload[i] = 0;
+    }
 
 }
 
@@ -161,20 +179,42 @@ void B_output(struct msg message)  { /*Not implemented for this project*/ }
  */
 void B_input(struct pkt packet) {
 
+    if(TraceLevel >= 2)
+        printf(GREEN "\nB_input called\n" RESET);
+
     struct msg recMessage; // store the receieved message
     struct pkt ackPacket;  // response packet to A side
 
     // check that the correct packet arrived and that the packet is not corrupt
     if(packet.seqnum == lastSeq && packet.checksum == calcChecksum(packet))
     {
-        // copy payload
-        // send ACK packet
+        for(int i=0; i<MESSAGE_LENGTH; i++)
+            recMessage.data[i] = packet.payload[i];
+        tolayer5(BEntity, recMessage);
+
+        ackPacket.acknum = lastSeq;
+        ackPacket.seqnum = lastSeq;
+        ackPacket.checksum = calcChecksum(ackPacket);
+
+        tolayer3(BEntity, ackPacket);
+
     }
     else // packet is incorrect or corrupt
     {
-        // send NAK packet
+        if(TraceLevel >= 2)
+        {
+            printf("Packet is corrupt, resending\n");
+            printf("Packet checksum: %d, Expected checksum: %d\n", packet.checksum, calcChecksum(lastPacket));
+        }
+
+        ackPacket.acknum = !lastSeq;
+        ackPacket.seqnum = lastSeq;
+
+        tolayer3(BEntity, ackPacket);
     }
     
+    if(TraceLevel >= 2)
+        printf(GREEN "end of B_input\n" RESET);
 }
 
 /*
@@ -195,13 +235,15 @@ void B_init() {
 
 /*
  *  This method is called to calculate the checksum of a provided packet
- *  based on its contents (seqnum, ack, payload)
+ *  based on its contents (seqnum, ack, payload), use the position of the
+ *  characters for the calculation in order to combat bit switching
  */
 int calcChecksum(struct pkt packet) {
-
-    int checksum = 0;
-
-
-
-    return checksum;
+	int a = 0;
+	a += packet.seqnum;//add seqnum
+	a+= packet.acknum * 2;//add 2 * acknum
+	for(int i =0; i < MESSAGE_LENGTH; i++){
+		a+= (packet.payload[i] * (i)+2);//add 3...22 * payload[0...20]
+	}
+	return a;//return the checksum
 }
