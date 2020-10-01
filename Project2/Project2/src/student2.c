@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "project2.h"
  
 /* ***************************************************************************
@@ -50,9 +49,8 @@ void A_output(struct msg message) {
     sendPacket.acknum = 0; // sender doesn't use ACK
     sendPacket.seqnum = !lastSeq; // opposite previous sequence number
     for (int i = 0; i < MESSAGE_LENGTH; i++) // copy message into payload
-    {
         sendPacket.payload[i] = message.data[i];
-    }
+
     sendPacket.checksum = calcChecksum(sendPacket); // Create checksum
 
     if(TraceLevel >= 2)
@@ -70,7 +68,8 @@ void A_output(struct msg message) {
     lastPacket.acknum   = sendPacket.acknum;
     lastPacket.seqnum   = sendPacket.seqnum;
     lastPacket.checksum = sendPacket.checksum;
-    strcpy(lastPacket.payload, sendPacket.payload);
+    for (int i = 0; i < MESSAGE_LENGTH; i++)
+        lastPacket.payload[i] = sendPacket.payload[i];
 
     if(TraceLevel >= 2)
         printf("Packet copied, end of A_output\n");
@@ -112,7 +111,7 @@ void A_input(struct pkt packet) {
     // packet was received successfully
     else
     {
-
+        // send next packet (if queued)
     }
 }
 
@@ -136,7 +135,15 @@ void A_timerinterrupt() {
 /* entity A routines are called. You can use it to do any initialization */
 void A_init() {
 
-    lastSeq = 1; // initial sequence number will be zero
+    lastSeq = 1; // initial packet sequence number will be zero
+
+    // initialize last packet (as it does not yet exist)
+    lastPacket.seqnum = 1;
+    lastPacket.acknum = 0; 
+    lastPacket.checksum = 0;
+    for (int i = 0; i < MESSAGE_LENGTH; i++)
+        lastPacket.payload[i] = 0;
+
 }
 
 
@@ -154,6 +161,20 @@ void B_output(struct msg message)  { /*Not implemented for this project*/ }
  */
 void B_input(struct pkt packet) {
 
+    struct msg recMessage; // store the receieved message
+    struct pkt ackPacket;  // response packet to A side
+
+    // check that the correct packet arrived and that the packet is not corrupt
+    if(packet.seqnum == lastSeq && packet.checksum == calcChecksum(packet))
+    {
+        // copy payload
+        // send ACK packet
+    }
+    else // packet is incorrect or corrupt
+    {
+        // send NAK packet
+    }
+    
 }
 
 /*
@@ -162,9 +183,7 @@ void B_input(struct pkt packet) {
  * routine to control the retransmission of packets. See starttimer() 
  * and stoptimer() in the writeup for how the timer is started and stopped.
  */
-void  B_timerinterrupt() {
-    
-}
+void  B_timerinterrupt() { /*Not implemented for this project*/ }
 
 /* 
  * The following routine will be called once (only) before any other   
@@ -175,9 +194,14 @@ void B_init() {
 }
 
 /*
- * 
- *   
+ *  This method is called to calculate the checksum of a provided packet
+ *  based on its contents (seqnum, ack, payload)
  */
 int calcChecksum(struct pkt packet) {
-    return 0;
+
+    int checksum = 0;
+
+
+
+    return checksum;
 }

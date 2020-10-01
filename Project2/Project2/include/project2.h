@@ -70,7 +70,7 @@ void B_init();                          // Simulator calls this at initializatio
 int calcChecksum(struct pkt packet);   // Calculate the checksum of provided packet
 
 /*
- * PROTOTYPES - These are in Project3.c
+ * PROTOTYPES - These are in project2.c
  *
  * These are routines that must be visible from student.c so that the code
  * written by students can get to these routines.
