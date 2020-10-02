@@ -50,6 +50,11 @@ struct   pkt {
     char payload[MESSAGE_LENGTH];
 };
 
+struct msgQueue {
+    struct msg      *waitingMessage;
+    struct msgQueue *next;
+};
+
 extern int TraceLevel;
 
 /*
@@ -68,6 +73,9 @@ void B_init();                          // Simulator calls this at initializatio
 
 // New Prototypes
 int calcChecksum(struct pkt packet);   // Calculate the checksum of provided packet
+void appendMessage(struct msg* newMsg); // Append to queue
+struct msg* popMessage(); // Remove first message from queue
+int isQueueEmpty(); // returns 1 if queue is empty, 0 otherwise
 
 /*
  * PROTOTYPES - These are in project2.c

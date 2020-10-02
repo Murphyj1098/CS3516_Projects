@@ -24,6 +24,9 @@ struct msg messageQueue[50];
 int pos;
 int busy;
 
+struct msgQueue *head = NULL;
+struct msgQueue *tail = NULL;
+
 /********* STUDENTS WRITE THE NEXT SEVEN ROUTINES *********/
 /* 
  * The routines you will write are detailed below. As noted above, 
@@ -112,7 +115,7 @@ void A_input(struct pkt packet) {
     else if(packet.acknum != lastPacket.seqnum)
     {
         if(TraceLevel >= 2)
-            printf("Returned NAK, resending\n");
+            printf(RED "Returned NAK, resending\n" RESET);
 
         tolayer3(AEntity, lastPacket);
         startTimer(AEntity, 1000);
@@ -141,7 +144,7 @@ void A_timerinterrupt() {
 
         // if timer expires, resend packet
         if(TraceLevel >= 2)
-            printf("No response from B, resending packet");
+            printf(YELLOW "No response from B, resending packet" RESET);
 
         tolayer3(AEntity, lastPacket);
         startTimer(AEntity, 1000);
@@ -161,7 +164,6 @@ void A_init() {
     {
         lastPacket.payload[i] = 0;
     }
-
 }
 
 
@@ -203,7 +205,7 @@ void B_input(struct pkt packet) {
     {
         if(TraceLevel >= 2)
         {
-            printf("Packet is corrupt, resending\n");
+            printf(RED "Packet is corrupt, resending\n" RESET);
             printf("Packet checksum: %d, Expected checksum: %d\n", packet.checksum, calcChecksum(lastPacket));
         }
 
@@ -237,13 +239,81 @@ void B_init() {
  *  This method is called to calculate the checksum of a provided packet
  *  based on its contents (seqnum, ack, payload), use the position of the
  *  characters for the calculation in order to combat bit switching
+ *  *Function from the provided one in Canvas*
  */
 int calcChecksum(struct pkt packet) {
-	int a = 0;
-	a += packet.seqnum;//add seqnum
-	a+= packet.acknum * 2;//add 2 * acknum
-	for(int i =0; i < MESSAGE_LENGTH; i++){
-		a+= (packet.payload[i] * (i)+2);//add 3...22 * payload[0...20]
-	}
-	return a;//return the checksum
+
+    if(TraceLevel >= 2)
+        printf(GREEN "\ncalcChecksum called\n" RESET);
+
+    int checksum = 0;
+    
+    for(int i = 0; i < MESSAGE_LENGTH; i++)
+    {
+        checksum += ((int)packet.payload[i] * i);
+    }
+    checksum += packet.acknum * 21;
+    checksum += packet.seqnum * 22;
+
+    if(TraceLevel >= 2)
+        printf(GREEN "end of calcChecksum\n" RESET);
+
+    return checksum;
+}
+
+/*
+ *  Add a message from layer 5 to the end of the queue (linked list)
+ * 
+ */
+void pushMessage(struct msg* newMsg)
+{
+    // allocate new message node
+    struct msgQueue *newNode = (struct msgQueue*) malloc(sizeof(struct msgQueue));
+
+    // populate new node
+    newNode->waitingMessage = newMsg;
+    newNode->next = NULL;
+
+    // if the list is empty, the new node is the new head and tail
+    if(head == NULL && tail == NULL)
+    {
+        head = newNode;
+        tail = newNode;
+
+    }
+    else //otherwise current tail points to new tail
+    {
+        tail->next = newNode;
+        tail = newNode;
+    }
+    
+}
+
+/*
+ *  Remove the first message from the front of the queue
+ *  and return its contents
+ */
+struct msg* popMessage()
+{
+    struct msg* returnMsg = head->waitingMessage; // return messaga
+
+    // remove current head
+    struct msgQueue *temp = head;
+
+    if(head == tail) // if the head is the tail, empty list
+        head = tail = NULL;
+    else //otherwise the next item is the new head
+        head = head->next;
+    
+    return returnMsg;
+}
+
+/*
+ *  Checks if the queue is empty (no head)
+ *  If so returns value of 1
+ */
+int isQueueEmpty()
+{
+    // if the read is null (queue empty), return true
+    return (head == NULL) ? 1 : 0;
 }
