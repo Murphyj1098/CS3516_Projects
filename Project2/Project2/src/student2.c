@@ -56,43 +56,46 @@ void A_output(struct msg message) {
 
         pushMessage(message); // pass address of message to queue
     }
+    else
+        {
 
-    if(TraceLevel >= 2)
-        printf("Generating packet to send\n");
+        if(TraceLevel >= 2)
+            printf("Generating packet to send\n");
 
-    struct pkt sendPacket;  // create packet
+        struct pkt sendPacket;  // create packet
 
-    // Packet Setup
-    sendPacket.acknum = 0; // sender doesn't use ACK
-    sendPacket.seqnum = !lastSeqSent; // opposite previous sequence number
-    for (int i = 0; i < MESSAGE_LENGTH; i++) // copy message into payload
-        sendPacket.payload[i] = message.data[i];
+        // Packet Setup
+        sendPacket.acknum = 0; // sender doesn't use ACK
+        sendPacket.seqnum = !lastSeqSent; // opposite previous sequence number
+        for (int i = 0; i < MESSAGE_LENGTH; i++) // copy message into payload
+            sendPacket.payload[i] = message.data[i];
 
-    sendPacket.checksum = calcChecksum(sendPacket); // Create checksum
+        sendPacket.checksum = calcChecksum(sendPacket); // Create checksum
 
-    if(TraceLevel >= 2)
-        printf("Packet populated, sending packet\n");
+        if(TraceLevel >= 2)
+            printf("Packet populated, sending packet\n");
 
-    tolayer3(AEntity, sendPacket); // send packet
-    startTimer(AEntity, 1000); // send timer to wait for ack
-    network = BUSY; // indicate the network is busy
+        tolayer3(AEntity, sendPacket); // send packet
+        startTimer(AEntity, 1000); // send timer to wait for ack
+        network = BUSY; // indicate the network is busy
 
-    lastSeqSent = sendPacket.seqnum; // Update previous sequence number
+        lastSeqSent = sendPacket.seqnum; // Update previous sequence number
 
-    if(TraceLevel >= 2)
-        printf("Packet sent, copying packet for possible resend\n");
+        if(TraceLevel >= 2)
+            printf("Packet sent, copying packet for possible resend\n");
 
-    // Copy sent packet in event of needing to resend
-    lastPacket.acknum   = sendPacket.acknum;
-    lastPacket.seqnum   = sendPacket.seqnum;
-    lastPacket.checksum = sendPacket.checksum;
-    for (int i = 0; i < MESSAGE_LENGTH; i++)
-        lastPacket.payload[i] = sendPacket.payload[i];
+        // Copy sent packet in event of needing to resend
+        lastPacket.acknum   = sendPacket.acknum;
+        lastPacket.seqnum   = sendPacket.seqnum;
+        lastPacket.checksum = sendPacket.checksum;
+        for (int i = 0; i < MESSAGE_LENGTH; i++)
+            lastPacket.payload[i] = sendPacket.payload[i];
 
-    if(TraceLevel >= 2)
-    {
-        printf("Packet copied\n");
-        printf(GREEN "End of A_output\n" RESET);
+        if(TraceLevel >= 2)
+        {
+            printf("Packet copied\n");
+            printf(GREEN "End of A_output\n" RESET);
+        }
     }
 }
 
@@ -241,12 +244,13 @@ void B_input(struct pkt packet) {
     {
         if(TraceLevel >= 2)
         {
-            printf(RED "Packet is corrupt, resending\n" RESET);
+            printf(RED "Packet is corrupt, sending NAK\n" RESET);
             printf("Packet checksum: %d, Expected checksum: %d\n", packet.checksum, packetCheck);
         }
 
         ackPacket.acknum = !nextSeqRecv;
         ackPacket.seqnum = nextSeqRecv;
+        ackPacket.checksum = calcChecksum(ackPacket);
 
         tolayer3(BEntity, ackPacket);
     }
