@@ -51,7 +51,7 @@ struct   pkt {
 };
 
 struct msgQueue {
-    struct msg      *waitingMessage;
+    struct msg       waitingMessage;
     struct msgQueue *next;
 };
 
@@ -73,8 +73,8 @@ void B_init();                          // Simulator calls this at initializatio
 
 // New Prototypes
 int calcChecksum(struct pkt packet);   // Calculate the checksum of provided packet
-void appendMessage(struct msg* newMsg); // Append to queue
-struct msg* popMessage(); // Remove first message from queue
+void pushMessage(struct msg newMsg); // Append to queue
+struct msg popMessage(); // Remove first message from queue
 int isQueueEmpty(); // returns 1 if queue is empty, 0 otherwise
 
 /*

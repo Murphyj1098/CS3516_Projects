@@ -17,12 +17,14 @@
    Compile as gcc -g project2.c student2.c -o p2
 **********************************************************************/
 
-int lastSeq; // store the previous sequence number for comparison
+int lastSeqSent; // store the previous sequence number sent
+int nextSeqRecv; // store the expected sequence number received
 struct pkt lastPacket; // store copy of most recently sent packet (to resending)
 
-struct msg messageQueue[50];
-int pos;
-int busy;
+// Track if network is free to send packet
+int network;
+#define FREE 0
+#define BUSY 1
 
 struct msgQueue *head = NULL;
 struct msgQueue *tail = NULL;
@@ -47,6 +49,14 @@ void A_output(struct msg message) {
     if(TraceLevel >= 2)
         printf(GREEN "\nA_output called\n" RESET);
 
+    if(network == BUSY)
+    {
+        if(TraceLevel >= 2)
+            printf(YELLOW "Network is busy, queueing message\n" RESET);
+
+        pushMessage(message); // pass address of message to queue
+    }
+
     if(TraceLevel >= 2)
         printf("Generating packet to send\n");
 
@@ -54,7 +64,7 @@ void A_output(struct msg message) {
 
     // Packet Setup
     sendPacket.acknum = 0; // sender doesn't use ACK
-    sendPacket.seqnum = !lastSeq; // opposite previous sequence number
+    sendPacket.seqnum = !lastSeqSent; // opposite previous sequence number
     for (int i = 0; i < MESSAGE_LENGTH; i++) // copy message into payload
         sendPacket.payload[i] = message.data[i];
 
@@ -65,8 +75,9 @@ void A_output(struct msg message) {
 
     tolayer3(AEntity, sendPacket); // send packet
     startTimer(AEntity, 1000); // send timer to wait for ack
+    network = BUSY; // indicate the network is busy
 
-    lastSeq = sendPacket.seqnum; // Update previous sequence number
+    lastSeqSent = sendPacket.seqnum; // Update previous sequence number
 
     if(TraceLevel >= 2)
         printf("Packet sent, copying packet for possible resend\n");
@@ -98,17 +109,22 @@ void A_input(struct pkt packet) {
 
     stopTimer(AEntity);
 
+    int packetCheck = calcChecksum(packet);
+
     // check for packet corruption
-    if(calcChecksum(packet) != packet.checksum)
+    if(packetCheck != packet.checksum)
     {
         if(TraceLevel >= 2)
         {
-            printf("Packet is corrupt, resending\n");
-            printf("Packet checksum: %d, Expected checksum: %d\n", packet.checksum, calcChecksum(lastPacket));
+            printf(RED "Packet is corrupt, resending\n" RESET);
+            printf("Packet checksum: %d, Expected checksum: %d\n", packet.checksum, packetCheck);
         }
 
         tolayer3(AEntity, lastPacket);
         startTimer(AEntity, 1000);
+
+        if(TraceLevel >= 2)
+            printf(GREEN "End of A_input\n" RESET);
     }
 
     // if packet not corrupt -> check ACK
@@ -119,19 +135,31 @@ void A_input(struct pkt packet) {
 
         tolayer3(AEntity, lastPacket);
         startTimer(AEntity, 1000);
+
+        if(TraceLevel >= 2)
+            printf(GREEN "End of A_input\n" RESET);
     }
 
     // packet was received successfully
     else
     {
-        // send next packet (if queued)
         if(TraceLevel >= 2)
             printf("ACK received at A-input successfully\n");
+
+        network = FREE;
+        
+        if(TraceLevel >= 2)
+            printf(GREEN "End of A_input\n" RESET);
+
+        if(!isQueueEmpty()) // if the queue is not empty
+        {
+            if(TraceLevel >= 2)
+                printf(YELLOW "\nSending queued message\n" RESET);
+
+            struct msg message = popMessage();
+            A_output(message);
+        }
     }
-
-    if(TraceLevel >= 2)
-        printf(GREEN "End of A_input\n" RESET);
-
 }
 
 /*
@@ -142,9 +170,11 @@ void A_input(struct pkt packet) {
  */
 void A_timerinterrupt() {
 
+        stopTimer(AEntity);
+
         // if timer expires, resend packet
         if(TraceLevel >= 2)
-            printf(YELLOW "No response from B, resending packet" RESET);
+            printf(YELLOW "\nNo response from B, resending packet\n" RESET);
 
         tolayer3(AEntity, lastPacket);
         startTimer(AEntity, 1000);
@@ -154,7 +184,9 @@ void A_timerinterrupt() {
 /* entity A routines are called. You can use it to do any initialization */
 void A_init() {
 
-    lastSeq = 1; // initial packet sequence number will be zero
+    lastSeqSent = 1; // initial packet sequence number will be zero
+
+    network = FREE; // network is initially free
 
     // initialize last packet (as it does not yet exist)
     lastPacket.seqnum = 1;
@@ -187,18 +219,22 @@ void B_input(struct pkt packet) {
     struct msg recMessage; // store the receieved message
     struct pkt ackPacket;  // response packet to A side
 
+    int packetCheck = calcChecksum(packet);
+
     // check that the correct packet arrived and that the packet is not corrupt
-    if(packet.seqnum == lastSeq && packet.checksum == calcChecksum(packet))
+    if(packet.seqnum == nextSeqRecv && packet.checksum == packetCheck)
     {
         for(int i=0; i<MESSAGE_LENGTH; i++)
             recMessage.data[i] = packet.payload[i];
         tolayer5(BEntity, recMessage);
 
-        ackPacket.acknum = lastSeq;
-        ackPacket.seqnum = lastSeq;
+        ackPacket.acknum = nextSeqRecv;
+        ackPacket.seqnum = nextSeqRecv;
         ackPacket.checksum = calcChecksum(ackPacket);
 
         tolayer3(BEntity, ackPacket);
+
+        nextSeqRecv = !nextSeqRecv; // flip sequence number
 
     }
     else // packet is incorrect or corrupt
@@ -206,11 +242,11 @@ void B_input(struct pkt packet) {
         if(TraceLevel >= 2)
         {
             printf(RED "Packet is corrupt, resending\n" RESET);
-            printf("Packet checksum: %d, Expected checksum: %d\n", packet.checksum, calcChecksum(lastPacket));
+            printf("Packet checksum: %d, Expected checksum: %d\n", packet.checksum, packetCheck);
         }
 
-        ackPacket.acknum = !lastSeq;
-        ackPacket.seqnum = lastSeq;
+        ackPacket.acknum = !nextSeqRecv;
+        ackPacket.seqnum = nextSeqRecv;
 
         tolayer3(BEntity, ackPacket);
     }
@@ -233,6 +269,7 @@ void  B_timerinterrupt() { /*Not implemented for this project*/ }
  */
 void B_init() {
 
+    nextSeqRecv = 0; // expect the first packet sequence to be 0
 }
 
 /*
@@ -244,7 +281,7 @@ void B_init() {
 int calcChecksum(struct pkt packet) {
 
     if(TraceLevel >= 2)
-        printf(GREEN "\ncalcChecksum called\n" RESET);
+        printf(GREEN "calcChecksum called\n" RESET);
 
     int checksum = 0;
     
@@ -255,9 +292,6 @@ int calcChecksum(struct pkt packet) {
     checksum += packet.acknum * 21;
     checksum += packet.seqnum * 22;
 
-    if(TraceLevel >= 2)
-        printf(GREEN "end of calcChecksum\n" RESET);
-
     return checksum;
 }
 
@@ -265,7 +299,7 @@ int calcChecksum(struct pkt packet) {
  *  Add a message from layer 5 to the end of the queue (linked list)
  * 
  */
-void pushMessage(struct msg* newMsg)
+void pushMessage(struct msg newMsg)
 {
     // allocate new message node
     struct msgQueue *newNode = (struct msgQueue*) malloc(sizeof(struct msgQueue));
@@ -286,22 +320,21 @@ void pushMessage(struct msg* newMsg)
         tail->next = newNode;
         tail = newNode;
     }
-    
 }
 
 /*
  *  Remove the first message from the front of the queue
  *  and return its contents
  */
-struct msg* popMessage()
+struct msg popMessage()
 {
-    struct msg* returnMsg = head->waitingMessage; // return messaga
+    struct msg returnMsg = head->waitingMessage; // return messaga
 
-    // remove current head
-    struct msgQueue *temp = head;
-
-    if(head == tail) // if the head is the tail, empty list
-        head = tail = NULL;
+    if(head == tail) // if the head is the tail, list is now empty
+    {
+        head = NULL;
+        tail = NULL;
+    }
     else //otherwise the next item is the new head
         head = head->next;
     
