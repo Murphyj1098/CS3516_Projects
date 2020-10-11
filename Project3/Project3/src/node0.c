@@ -12,6 +12,9 @@ struct NeighborCosts   *neighbor0;
 /* students to write the following two routines, and maybe some others */
 
 void rtinit0() {
+    neighbor0 = getNeighborCosts(0);
+    printf("At time t=%f, rinit0() called.\n", clocktime);
+    
 
 }
 
