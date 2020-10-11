@@ -342,6 +342,8 @@ struct msg popMessage()
     else //otherwise the next item is the new head
         head = head->next;
     
+    free(head);
+
     return returnMsg;
 }
 
